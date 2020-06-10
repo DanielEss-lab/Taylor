@@ -25,21 +25,21 @@ def parseInput(inputFile):
 		elif "method" in line:
 			inputs["method"] = line.split(':')[1]
 		elif "temperature" in line:
-			#do something
+			inputs["temperature"] = line.split(':')[1]
 		elif "solvent" in line:
-			#do something
+			inputs["solvent"] = line.split(':')[1]
 		elif "batch" in line:
-			#do something
+			inputs["batch"] = line.split(':')[1]
 		elif "m-basis" in line:
-			#do something
+			inputs["m-basis"] = line.split(':')[1]
 		elif "m-method" in line:
-			#do something
+			inputs["m-method"] = line.split(':')[1]	
 		elif "library" in line:
-			#do something
+			inputs["library"] = line.split(':')[1]
 		elif "solvent_model" in line:
-			#do something
+			inputs["solvent_model"] = line.split(':')[1]
 		elif "denfit" in line:
-			#do something
+			inputs["denfit"] = line.split(':')[1]
 		else:
 			#Temporary to check the functionality of buildCom Function
 			coords.append(line)
