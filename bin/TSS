@@ -3,5 +3,6 @@
 import os, sys
 from TSSFuncts import *
 
-result = parseInput(sys.argv[1])
+defaultresults = default()
+result = parseInput(sys.argv[1], defaultresults)
 buildCom(result[0], result[1])
