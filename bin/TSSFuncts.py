@@ -77,12 +77,31 @@ def parseInput(inputFile, inputs):
 			inputs["solvent_model"] = line.split(':')[1]
 		elif "denfit" in line:
 			inputs["denfit"] = line.split(':')[1]
+		elif "subtract" in line:
+			parseChanges(line, "subtract", inputs)
+		elif "substitute" in line:
+			parseChanges(line, "substitute", inputs)
+		elif "add" in line:
+			parseChanges(line, "add", inputs)
 		else:
 			#Temporary to check the functionality of buildCom Function
 			coords.append(line)
 		line = iF.readline()
 	iF.close()
 	return inputs, coords
+
+
+def parseChanges(line, option, inputs):
+	split_line = line.split(':')[1]
+	split_line = split_line[1:-2]
+	split_again = split_line.split(',')
+	if option == "subtract":
+		inputs["subtract"] = [val for val in split_again]
+	elif option == "substitute":
+		inputs["substitute"] = [val for val in split_again]
+	elif option == "add":
+		inputs["add"] = [val for val in split_again]
+
 
 def buildCom(inputs, coords):
 	oF = open("TSS.com", 'w')
@@ -104,7 +123,9 @@ def buildCom(inputs, coords):
 	oF.write("\n")
 	oF.close()
 
+def buildInputs(library, library_location):
+	if library is True:
+		buildLibraryInputs(library_location)
+	else:
+		buildGuessedInputs()
 
-
-#result = parseInput(sys.argv[1])
-#buildCom(result[0], result[1])
