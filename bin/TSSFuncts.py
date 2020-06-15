@@ -86,6 +86,10 @@ def parseInput(inputFile, inputs):
 		#Not Required
 		elif "add" in line:
 			parseChanges(line, "add", inputs)
+		elif "difficulty" in line:
+			inputs["difficulty"] = line.split(':')[1]
+		elif "conformation_leniency" in line:
+			inputs["leniency"] = line.split(':')[1]
 		else:
 			#Temporary to check the functionality of buildCom Function
 			coords.append(line)
