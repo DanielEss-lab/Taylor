@@ -10,8 +10,6 @@ coords = []
 def default():
         iF = open(os.path.expanduser("~/TSS/bin/.default"), "r")
         line = iF.readline()
-        #inputs = {}
-        #coords = []
         while line:
                 if "spin" in line:
                         inputs["spin"] = line.split(':')[1]
@@ -21,20 +19,12 @@ def default():
                         inputs["basis"] = line.split(':')[1]
                 elif "method" in line:
                         inputs["method"] = line.split(':')[1]
-                elif "temperature" in line:
-                        inputs["temperature"] = line.split(':')[1]
-                elif "solvent" in line:
-                        inputs["solvent"] = line.split(':')[1]
                 elif "batch" in line:
                         inputs["batch"] = line.split(':')[1]
                 elif "m-basis" in line:
                         inputs["m-basis"] = line.split(':')[1]
                 elif "m-method" in line:
                         inputs["m-method"] = line.split(':')[1]
-                elif "library" in line:
-                        inputs["library"] = line.split(':')[1]
-                elif "solvent_model" in line:
-                        inputs["solvent_model"] = line.split(':')[1]
                 elif "denfit" in line:
                         inputs["denfit"] = line.split(':')[1]
                 line = iF.readline()
@@ -48,39 +38,52 @@ def parseInput(inputFile, inputs):
 		pass
 	else:
 		sys.exit("input file wasn't a .in file")
-	#inputs = {}
-	#coords = []
 	iF = open(inputFile, "r")
 	line = iF.readline()
 	while line:
+		#Required - Default in file
 		if "spin" in line:
 			inputs["spin"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "multiplicity" in line:
 			inputs["mult"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "basis" in line:
 			inputs["basis"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "method" in line:
 			inputs["method"] = line.split(':')[1]
+		 #Required - Gaussian has a default
 		elif "temperature" in line:
 			inputs["temperature"] = line.split(':')[1]
+		#Not Required, Gaussian Defaults to Gas
 		elif "solvent" in line:
 			inputs["solvent"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "batch" in line:
 			inputs["batch"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "m-basis" in line:
 			inputs["m-basis"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "m-method" in line:
 			inputs["m-method"] = line.split(':')[1]	
+		#Required, default not in file
 		elif "library" in line:
 			inputs["library"] = line.split(':')[1]
+		#Not Required, Gaussian Defaults to gas
 		elif "solvent_model" in line:
 			inputs["solvent_model"] = line.split(':')[1]
+		 #Required - Default in file
 		elif "denfit" in line:
 			inputs["denfit"] = line.split(':')[1]
+		#Not Required
 		elif "subtract" in line:
 			parseChanges(line, "subtract", inputs)
+		#Not Required
 		elif "substitute" in line:
 			parseChanges(line, "substitute", inputs)
+		#Not Required
 		elif "add" in line:
 			parseChanges(line, "add", inputs)
 		else:
