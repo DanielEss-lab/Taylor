@@ -2,7 +2,7 @@
 
 #Written By Taylor Nielson
 
-import sys, os, numpy as np
+import sys, os, shutil, numpy as np
 
 inputs = {}
 coords = []
@@ -147,3 +147,24 @@ def buildInputs(library, library_location):
 	else:
 		buildGuessedInputs()
 
+
+#Copies the base_input as defined in the input file and modifies it to build a new xyz file
+#Currently only does subractions
+def buildLibraryInputs(lib_location):
+	shutil.copy(os.path.expanduser("~/TSS/libs/base_templates/" + inputs["library"].strip()), "temp.xyz")
+	tempF = open("temp.xyz", "r")
+	finalF = open("out.xyz", "w")
+	atomNumber = int(tempF.readline())
+	atomNumber -= len(inputs["subtract"])
+	#need to include adding and substituting
+	tempF.readline()	
+	finalF.write(str(atomNumber) + "\n\n")
+	for i in range(1, atomNumber + 1):
+		line = tempF.readline()
+		if str(i) in inputs["subtract"]:
+			print("should skip" + str(i))
+			pass
+		#elif i in inputs["substitute"]:
+		#elif i in inputs["add"]:
+		else:
+			finalF.write(line)
