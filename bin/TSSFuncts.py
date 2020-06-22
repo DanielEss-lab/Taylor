@@ -8,28 +8,29 @@ inputs = {}
 coords = []
 
 def default():
-        iF = open(os.path.expanduser("~/TSS/bin/.default"), "r")
-        line = iF.readline()
-        while line:
-                if "spin" in line:
-                        inputs["spin"] = line.split(':')[1]
-                elif "multiplicity" in line:
-                        inputs["mult"] = line.split(':')[1]
-                elif "basis" in line:
-                        inputs["basis"] = line.split(':')[1]
-                elif "method" in line:
-                        inputs["method"] = line.split(':')[1]
-                elif "batch" in line:
-                        inputs["batch"] = line.split(':')[1]
-                elif "m-basis" in line:
-                        inputs["m-basis"] = line.split(':')[1]
-                elif "m-method" in line:
-                        inputs["m-method"] = line.split(':')[1]
-                elif "denfit" in line:
-                        inputs["denfit"] = line.split(':')[1]
-                line = iF.readline()
-        iF.close()
-        return inputs
+	iF = open(os.path.expanduser("~/TSS/bin/.default"), "r")
+	line = iF.readline()
+	while line:
+		if "spin" in line:
+			inputs["spin"] = line.split(':')[1]
+		elif "multiplicity" in line:
+			inputs["mult"] = line.split(':')[1]
+		elif "basis" in line:
+			inputs["basis"] = line.split(':')[1]
+		elif "method" in line:
+			inputs["method"] = line.split(':')[1]
+		elif "batch" in line:
+			inputs["batch"] = line.split(':')[1]
+		elif "m-basis" in line:
+			inputs["m-basis"] = line.split(':')[1]
+		elif "m-method" in line:
+			inputs["m-method"] = line.split(':')[1]
+		elif "denfit" in line:
+			inputs["denfit"] = line.split(':')[1]
+		line = iF.readline()
+	iF.close()
+	inputs["opt"] = "modred"
+	return inputs
 
 def parseInput(inputFile, inputs):
 	name = inputFile.split('.')[0]
@@ -39,6 +40,7 @@ def parseInput(inputFile, inputs):
 	else:
 		sys.exit("input file wasn't a .in file")
 	iF = open(inputFile, "r")
+	coords = []
 	line = iF.readline()
 	while line:
 		#Required - Default in file
@@ -90,13 +92,22 @@ def parseInput(inputFile, inputs):
 			inputs["difficulty"] = line.split(':')[1]
 		elif "conformation_leniency" in line:
 			inputs["leniency"] = line.split(':')[1]
-		else:
-			#Temporary to check the functionality of buildCom Function
-			coords.append(line)
 		line = iF.readline()
 	iF.close()
+	coords = getCoords()
 	return inputs, coords
 
+
+def getCoords():
+	coords = []
+	iF = open(os.path.expanduser("~/TSS/libs/base_templates/" + inputs["library"].strip()), "r")
+	line = iF.readline()
+	line = iF.readline()
+	line = iF.readline()
+	while line:
+		coords.append(line)
+		line = iF.readline()
+	return coords
 
 def parseChanges(line, option, inputs):
 	split_line = line.split(':')[1]
@@ -117,7 +128,7 @@ def buildCom(inputs, coords):
 	#if inputs["mult"] == "":
  	#	inputs["mult"] = 2
 	#
-	oF.write("opt=modred freq=noraman " + inputs["method"].strip() + "/" + inputs["basis"].strip() + " integral = ultrafine")
+	oF.write("opt=" + inputs["opt"].strip() + " freq=noraman " + inputs["method"].strip() + "/" + inputs["basis"].strip() + " integral = ultrafine")
 	oF.write("\n\n")
 	oF.write("TSS")
 	oF.write("\n\n")
