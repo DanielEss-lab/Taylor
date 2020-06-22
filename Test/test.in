@@ -1,0 +1,11 @@
+library:smalliron.xyz
+spin:0
+multiplicity:1
+basis:6-31G(d,p)
+method:m06
+difficulty:20
+conformational_leniency:10
+batch:no
+add:[25 = L, 17 = F]
+subtract:[17,18,19]
+substitute:[16 = atoms, 19 = O]
