@@ -5,4 +5,7 @@ from TSSFuncts import *
 
 defaultresults = default()
 result = parseInput(sys.argv[1], defaultresults)
-buildCom(result[0], result[1])
+#Molecule builder goes here (input inputs, outputs xyz file(s)
+#Elaynas function goes here (input is xyz file, output is xyz file)
+#Ammons script goes here (input is xyz file with multiple molecules, output is multiple com files)
+#buildCom(result[0], result[1])
