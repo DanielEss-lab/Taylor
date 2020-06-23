@@ -121,8 +121,8 @@ def parseChanges(line, option, inputs):
 		inputs["add"] = [val for val in split_again]
 
 
-def buildCom(inputs, coords):
-	oF = open("TSS.com", 'w')
+def buildCom(inputs, coords, f_name):
+	oF = open(f_name, 'w')
 	#need to error check and to check whether the input has the desired info or if the defaults are going to be used
 	#
 	#if inputs["mult"] == "":
@@ -168,3 +168,15 @@ def buildLibraryInputs(lib_location):
 		#elif i in inputs["add"]:
 		else:
 			finalF.write(line)
+
+
+def modredConformers(crest_conformers_file, inputs):
+    f_name = 'crest_conformers.xyz' ## default
+    iF = open(f_name, 'r')
+    buildCom()
+    ## under construction
+    
+    
+    
+    
+    
