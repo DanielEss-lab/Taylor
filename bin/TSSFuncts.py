@@ -2,6 +2,7 @@
 #Written By Taylor Nielson
 
 import sys, os,re, shutil, numpy as np, time, subprocess
+import os.path
 
 
 #This list is currently incomplete But it is a mapping of metals and nonmetals to their atomic number
@@ -28,6 +29,7 @@ def default():
                 	inputs["mbasis"] = line.split(':')[1]
 		elif "denfit" in line:
 			inputs["denfit"] = line.split(':')[1]
+		#check with Taylor, what does the crest_selectivity do does it need to be removed from default???
 		line = iF.readline()
 	iF.close()
 	inputs["opt"] = "modred"
@@ -95,6 +97,9 @@ def parseInput(inputFile, inputs,xyz_file):
 			inputs["difficulty"] = line.split(':')[1]
 		elif "conformational_leniency" in line:
 			inputs["leniency"] = line.split(':')[1]
+		elif "run_crest" in line: #Check with Taylor???
+			inputs["run_crest"] = line.split(':')[1]
+			os.environ['RUN_CREST'] = inputs["run_crest"] #??? using env variable to
 		line = iF.readline()
 	iF.close()
 	#coords = getCoords(inputs,xyz_file)
@@ -126,19 +131,19 @@ def buildCom(inputs, coords, f_name):
 	oF.write("\n\n")
 	oF.write(inputs["charge"].strip() + " " + inputs["spin"] + "\n")
 	for coord in coords:
-        	coord = coord.strip()
-        	if coord[0].isalpha():
-                        oF.write(coord + "\n")
-        	else:
-        		coord = coord.split()
-        		if coord[0] in metals_lib:
-        			string = " "
-        			coord[0] = metals_lib[str(coord[0])]
-        			oF.write(string.join(coord)+ "\n")
-        		else:
-        			string = " "
-        			coord[0] = non_metals_lib[str(coord[0])]
-        			oF.write(string.join(coord)+ "\n")
+		coord = coord.strip()
+		if coord[0].isalpha():
+			oF.write(coord + "\n")
+		else:
+			coord = coord.split()
+			if coord[0] in metals_lib:
+				string = " "
+				coord[0] = metals_lib[str(coord[0])]
+				oF.write(string.join(coord)+ "\n")
+			else:
+				string = " "
+				coord[0] = non_metals_lib[str(coord[0])]
+				oF.write(string.join(coord)+ "\n")
 	writeFreezes(oF, coords, inputs)
 	oF.write("\n")
 	oF.write("\n")
@@ -174,16 +179,16 @@ def writeFreezes(outFile,coords, inputs):
 def writeGenecp(outFile,coords, inputs):
 	metals, non_metals = getAtomTypes(coords)
 	if "modred" in inputs["opt"]:
-        	outFile.write("\n")
+		outFile.write("\n")
 	for val in metals:
-        	outFile.write(val + " ")
+		outFile.write(val + " ")
 	outFile.write("0\n")
 	outFile.write(inputs["mbasis"].strip() + "\n****\n")
 	for val in non_metals:
-        	outFile.write(val + " ")
+		outFile.write(val + " ")
 	outFile.write("0\n" + inputs["basis"].strip() + "\n****\n\n")
 	for val in metals:
-        	outFile.write(val + " ")
+		outFile.write(val + " ")
 	outFile.write("0\n")
 	outFile.write(inputs["mbasis"].strip())
 		
@@ -194,16 +199,16 @@ def getAtomTypes(coords):
 	metals = set()
 	non_metals = set() 
 	for coord in coords:
-        	coord = coord.strip()
-        	if coord.split()[0].upper() in metals_lib.values():
-                	metals.add(coord.split()[0])
-        	elif coord.split()[0] in metals_lib:
-                        metals.add(metals_lib[str(coord.split()[0])])
-        	else:
-                	if coord[0].isalpha():
-                        	non_metals.add(coord.split()[0])
-                	else:
-                        	non_metals.add(non_metals_lib[str(coord.split()[0])])
+		coord = coord.strip()
+		if coord.split()[0].upper() in metals_lib.values():
+			metals.add(coord.split()[0])
+		elif coord.split()[0] in metals_lib:
+			metals.add(metals_lib[str(coord.split()[0])])
+		else:
+			if coord[0].isalpha():
+				non_metals.add(coord.split()[0])
+			else:
+				non_metals.add(non_metals_lib[str(coord.split()[0])])
 	return metals, non_metals
 	
 
@@ -230,13 +235,18 @@ def buildLibraryInputs(lib_location):
 
 #Uses the results of the modred to make com files for the modred section
 def modredCrest(crest_file, inputs):
+	print("running modredCrest")
 	energies = []
 	acceptable_energy = True
 	os.chdir("modred")
 	coords_list = []
 	names_list = []
 	num_structures = 0
-	iF = open("../"+crest_file,"r")
+	if os.path.isfile("../"+crest_file):
+		iF = open("../"+crest_file,"r")
+	elif os.path.isfile(crest_file):
+		iF = open(crest_file, "r")
+	#iF = open("../"+crest_file,"r")
 	line = iF.readline()
 	while line:
 		line = iF.readline()
@@ -264,13 +274,62 @@ def modredCrest(crest_file, inputs):
 #		buildCom(inputs, coords_list[i], names_list[i])
 	try:
 		for i in range(len(coords_list)-1, len(coords_list)-int(inputs["confs"])-1,-1):
-			buildCom(inputs, coords_list[i], names_list[i])
+			#continue
+			buildCom(inputs, coords_list[i], names_list[i]) #??? not sure about commenting this out
 	except:
 		print("okay\n")
 	os.chdir("../")
 # def modredRangeCreation():
 	#This will take the current modreds and create multiple ones with differing frozen bond lengths
 
+#this is the modredCrest function but altered to accept only the original xyz file. This is when the user
+#does not wish to run crest
+def modredNoCrest(xyz_file, inputs):
+	#energies = []
+	acceptable_energy = True
+	os.chdir("modred")
+	coords_list = []
+	names_list = []
+	num_structures = 0
+	if os.path.isfile("../"+xyz_file):
+		iF = open("../"+xyz_file,"r")
+	elif os.path.isfile(xyz_file):
+		iF = open(xyz_file, "r")
+	#iF = open("../"+crest_file,"r")
+	line = iF.readline()
+	while line:
+		line = iF.readline()
+		#energies.append(float(line)*627.51)
+		line = iF.readline()
+		coords = []
+		while line:
+			if line.strip()[0].isalpha():
+				coords.append(line)
+				line = iF.readline()
+			else:
+				break
+		#for i in range(0,len(energies)-1):
+		#	if energies[-1] -energies[i] < 0.10:
+		#		acceptable_energy = False
+		#		energies.pop()
+		#		break
+		if acceptable_energy:
+			coords_list.append(coords)
+			names_list.append("conf" + str(num_structures) + ".com")
+			num_structures +=1
+		acceptable_energy = True
+	inputs["numconfs"] = num_structures
+	#for i in range(0,len(coords_list)):
+#		buildCom(inputs, coords_list[i], names_list[i])
+	try:
+		for i in range(len(coords_list)-1, len(coords_list)-int(inputs["confs"])-1,-1):
+			#continue
+			buildCom(inputs, coords_list[i], names_list[i]) #??? not sure about commenting this out
+	except:
+		print("okay\n")
+	os.chdir("../")
+# def modredRangeCreation():
+	#This will take the current modreds and create multiple ones with differing frozen bond lengths
 
 #Takes the log of the modred and gets the resulting xyz coords
 def logtoxyz(f_name):
@@ -298,6 +357,7 @@ def logtoxyz(f_name):
 
 #Runs the gaussian jobs and monitors them. If the modred finishes but doesn't have an imaginary vibration it is killed otherwise it runs the transition state search
 def gaussianProcesses(inputs):
+	print("in gaussianProcesses")
 	commands = []
 	switched = []
 	optType = []	
@@ -307,41 +367,47 @@ def gaussianProcesses(inputs):
 	allDone = False
 	os.chdir("modred")
 	for file in os.listdir(os.getcwd()):
-        	file_names.append(str(file.split('.')[0]))
-        	commands.append(['/apps/gaussian16/B.01/AVX2/g16/g16', file])
-        	optType.append("modred")
-        	switched.append(0)
+		print("file name to add: " + str(file.split('.')[0]))
+		file_names.append(str(file.split('.')[0]))
+		commands.append(['/apps/gaussian16/B.01/AVX2/g16/g16', file])
+		optType.append("modred")
+		switched.append(0)
 	for com in commands:
-        	processes.append(subprocess.Popen(com))
+		processes.append(subprocess.Popen(com))
 	while not allDone:
-        	allDone = True
-        	time.sleep(300)
-        	i = 0
-        	drawStatus(file_names, processes, optType, switched)
-        	for p in processes:
-                	if p.poll() is None:
-                        	allDone = False
-                	else:
-                        	if (not switched[i]):
-                                	hasNeg = checkNegVib(file_names[i] + ".log")
-                                	if hasNeg:
-                                        	allDone = False
-                                        	coords = logtoxyz(file_names[i] + ".log")
-                                        	os.chdir('../gaussianTS/')
-                                        	buildCom(inputs, coords, file_names[i] + ".com")
-                                        	inputs["numconfs"] = findAliveProcesses(processes)
-                                        	processes[i] = subprocess.Popen(['/apps/gaussian16/B.01/AVX2/g16/g16', (file_names[i] + ".com")])
-                                        	optType[i] = "TS Calc"
-                                       		os.chdir('../modred')
-                                        	switched[i] = 1
-                                	else:
-                                        	optType[i] = "killed"
-                	i += 1
+		allDone = True
+		time.sleep(300)
+		i = 0
+		drawStatus(file_names, processes, optType, switched)
+		#print("testing new line")
+		run_crest = os.getenv('RUN_CREST')
+		for p in processes:
+			if p.poll() is None:
+				allDone = False
+			else:
+				if (not switched[i]):
+					hasNeg = checkNegVib(file_names[i] + ".log")
+					if hasNeg:
+						allDone = False
+						coords = logtoxyz(file_names[i] + ".log")
+						os.chdir('../gaussianTS/')
+						if run_crest == "yes\n":
+							buildCom(inputs, coords, file_names[i] + ".com") #check with Taylor ??? original code was just this line, no if/elif block
+						elif i == 0:
+							buildCom(inputs, coords, file_names[i] + ".com") #check with Taylor ???
+						inputs["numconfs"] = findAliveProcesses(processes)
+						processes[i] = subprocess.Popen(['/apps/gaussian16/B.01/AVX2/g16/g16', (file_names[i] + ".com")])
+						optType[i] = "TS Calc"
+						os.chdir('../modred')
+						switched[i] = 1
+					else:
+						optType[i] = "killed"
+			i += 1
 	drawStatus(file_names, processes, optType, switched)
 	os.chdir("../gaussianTS")
 	files = [f for f in os.listdir('.') if f.split('.')[1] is "log"]
 	for f in files:
-        	CheckPassFail(f)
+		CheckPassFail(f)
 	print("all done")
 
 #Helper function to get the number of processes still alive
@@ -367,18 +433,18 @@ def drawStatus(file_names, processes, optType, switched):
 	statusFile = open("status", "w")
 	i = 0
 	for p in processes:
-                        if p.poll() is None:
-                                statusFile.write(file_names[i] + "          ------> Running " + optType[i] + "\n\n")
-                        else:
-                                #Check for negative frequencyi
-                        	if(not switched[i]):
-                                	if optType[i] is "killed":
-                                        	statusFile.write(file_names[i] + "          ------> Killed - No Negative Vibration at end of Modred\n\n")
-                                	else:
-                                        	statusFile.write(file_names[i] + "          ------> Transitioning from modred to TS Calc\n\n")
-                        	else:
-                                	statusFile.write(file_names[i] + "          ------> Done\n\n")
-                        i += 1 
+		if p.poll() is None:
+				statusFile.write(file_names[i] + "          ------> Running " + optType[i] + "\n\n")
+		else:
+				#Check for negative frequencyi
+			if(not switched[i]):
+					if optType[i] is "killed":
+							statusFile.write(file_names[i] + "          ------> Killed - No Negative Vibration at end of Modred\n\n")
+					else:
+							statusFile.write(file_names[i] + "          ------> Transitioning from modred to TS Calc\n\n")
+			else:
+					statusFile.write(file_names[i] + "          ------> Done\n\n")
+		i += 1 
 	statusFile.close()
 	os.chdir('modred')
 
@@ -387,11 +453,11 @@ def checkNegVib(inFile):
 	iF = open(inFile, "r")
 	line = iF.readline()
 	while line:
-        	if "Frequencies --" in line:
-                	Freq = float(line.split()[2])
-                	if Freq < 0:
-                        	return float(line.split() [3]) > 0
-        	line = iF.readline()
+		if "Frequencies --" in line:
+			Freq = float(line.split()[2])
+			if Freq < 0:
+				return float(line.split() [3]) > 0
+		line = iF.readline()
 	iF.close()
 	return False
 #Helper function to check to see if the file finished without errors	
@@ -429,6 +495,15 @@ def outputFunc(f_name):
 		line = iF.readline()
 	iF.close()
 	return thval
+
+#moves the .log files that were sucessfull from the gaussianTS folder to the completed folder
+def moveLogFiles():
+	os.chdir("../")
+	source_path = "gaussianTS/"
+	target_path = "completed/"
+	for filename in os.listdir("gaussianTS"):
+		if filename.split('.')[1] == "log":
+			shutil.move(source_path + filename, target_path + filename)
         
 #Creates the completed output file
 def finalOutput():
@@ -437,6 +512,14 @@ def finalOutput():
 	results = []
 	oF = open("autots.out", 'w')
 	oF.write("\nAuto TS Output File\n")
+	if "yes" in os.getenv("RUN_CREST"):
+		oF.write("crest was used\n")
+	else:
+		oF.write("crest was not used")
+	time = os.getenv("TIME")
+	oF.write("Trying to write time to final output file\n")
+	oF.write("Time taken: " + time + "\n")
+	oF.write("After trying to write time to final output file\n")
 	for file in os.listdir("."):
 		results.append(outputFunc(file))
 	for result in results:
@@ -444,7 +527,35 @@ def finalOutput():
 		oF.write(result)
 	oF.close()
 
+#first part of runCrest separated in case user runs without crest ??? optimize later
+#sets the charge multiplicity and bonds in the input array
+def setChargeMultBonds(xyz_file, leniency, inputs):
+	bonds = []
+	libFile = open(xyz_file, "r")
+	header = libFile.readline()
+	bonds_line = libFile.readline()[2:] #get rid of F: in bond freeze list
+	bond_strings = bonds_line.split(';')
+	bond_strings.pop()
+	charge_multiplicity = bond_strings.pop()
+	charge_multiplicity = charge_multiplicity[2:]
+	charge_multiplicity = charge_multiplicity.split(',')
+	inputs["charge"]=charge_multiplicity[0]
+	inputs["spin"]=charge_multiplicity[1]
+	#with open(xyz_file, "r") as coorid_file:
+	header += "\n"
+	bond_strings = bond_strings[0].split(',')
+	if bond_strings[0] == '':
+		you_found_the_easter_egg = 5
+	else:
+		for bond in bond_strings:
+			atoms = bond.split('-')
+			bonds.append([str(int(atoms[0]) + 1), str(int(atoms[1]) + 1)]) #chem programs are 1 based so you need to add one
+	coords = libFile.readlines()
+	inputs["bonds"] = bonds
+	libFile.close()
+
 def runCrest(xyz_file, leniency, inputs):
+	print("in runCrest")
 	coords = []
 	header = ''
 	bonds = []
@@ -489,8 +600,8 @@ def runCrest(xyz_file, leniency, inputs):
 	if "solvent" in inputs:
 		concatList.add("-g")
 		concatList.add(inputs['solvent'])
-	crest_file = os.getenv('CREST_FILE')
-	run_crest = subprocess.Popen([crest_file, "coords.xyz", "-cinp", "cinp", "--noreftopo", "-ewin", leniency] + concatList) # + [">","crest.out"])
+	crest_file = os.getenv('CREST_FILE') #??? where is this env variable set
+	run_crest = subprocess.Popen([crest_file, "coords.xyz", "-cinp", "cinp", "--noreftopo", "-ewin", leniency] + concatList) # + [">","crest.out"]) ??? norefttopo flag will
 	run_crest.wait()
 	try:
 		shutil.copy("crest_conformers.xyz", "../crest_conformers.xyz")
@@ -501,8 +612,8 @@ def runCrest(xyz_file, leniency, inputs):
 		sys.exit()
 	origFile = open(xyz_file,"r")
 	line = origFile.readline()
-	#adds the original xyz file into the crest_conformers.xyz, check with someone to see if crest already puts this in
-	#does crest_conformers.xyz order by quality or is it random?
+	#adds the original xyz file into the crest_conformers.xyz, check with someone to see if crest already puts this in???
+	#does crest_conformers.xyz order by quality or is it random???
 	while line: 
 		if "F:" in line:
 			tempFile.write("0\n")
