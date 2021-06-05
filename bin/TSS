@@ -16,8 +16,8 @@ inputs = parseInput(sys.argv[1], defaultresults, sys.argv[2])
 #makes directories(crest, modred, gaussianTS, completed)
 makeDirectories()
 #checks if the user wants to run crest conformer calculations, check with Taylor ???
-run_crest = os.environ.get("RUN_CREST")#inputs["run_crest"]#os.environ.get("RUN_CREST")
-oF = open("mr_test_file_usa.txt", 'w')
+run_crest = os.environ.get("RUN_CREST")
+oF = open("mr_crest_var_test_file.txt", 'w')
 oF.write("value of inputs at run_crest: " + inputs["run_crest"] + "\n")
 #runs crest on original xyz to find conformers
 if "yes" in run_crest: #check with Taylor???
@@ -26,6 +26,7 @@ if "yes" in run_crest: #check with Taylor???
     runCrest(sys.argv[2], inputs["leniency"], inputs)
     #makes modred files from crest conformers and puts them in the modred folder
     modredCrest("crest_conformers.xyz",inputs)
+#does not run crest
 else:
     oF.write("crest is not being used")
     oF.close()
@@ -42,7 +43,25 @@ hours, rem = divmod(end-start, 3600)
 minutes, seconds = divmod(rem, 60)
 time_formated = "{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds)
 os.environ["TIME"] = time_formated
-#create final output file that will summarize time, whether or not crest was used etc
-finalOutput()
-#moves the .log files from gaussianTS folder to the complete folder
-moveLogFiles()
+#check that no errors in modred or gaussian have occurred 
+os.chdir("../")
+iF = open("status", "r")
+line = iF.readline()
+if "Done" in line:
+    os.environ["NO_ERRORS"] = "True"
+    #moves the .log files from gaussianTS folder to the complete folder
+    moveLogFiles()
+    #check if user has specidified to do a vibration vector test on the completed TS's
+    vib_test = os.getenv("VIBRATION_TEST")
+    if vib_test != None:
+        if "yes" in os.getenv("VIBRATION_TEST"):
+            atom1_int = int(os.getenv("ATOM1"))
+            atom2_int = int(os.getenv("ATOM2"))
+            vibrationFrequencyMainFunc(atom1_int, atom2_int)
+    #create final output file that will summarize time, whether or not crest was used etc
+    finalOutput()
+else:
+    os.environ["NO_ERRORS"] = line
+    finalOutput()
+iF.close()
+

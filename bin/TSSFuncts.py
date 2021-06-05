@@ -80,6 +80,7 @@ def parseInput(inputFile, inputs,xyz_file):
 			inputs["memper"] = line.split(':')[1]
 		elif "confs" in line:
 			inputs["confs"] = line.split(':')[1]
+			os.environ['NUM_CONFS_REQUESTED'] = inputs["confs"]
 		elif "extra" in line:
 			inputs["extra"] = line.split(':')[1]
 #		elif "time" in line:
@@ -100,6 +101,15 @@ def parseInput(inputFile, inputs,xyz_file):
 		elif "run_crest" in line: #Check with Taylor???
 			inputs["run_crest"] = line.split(':')[1]
 			os.environ['RUN_CREST'] = inputs["run_crest"] #??? using env variable to
+		elif "vibration_test" in line:
+			inputs["vibration_test"] = line.split(':')[1]
+			os.environ['VIBRATION_TEST'] = inputs["vibration_test"]
+			line = iF.readline()
+			inputs["atom1"] = str(line.split(':')[1])
+			os.environ['ATOM1'] = inputs["atom1"]
+			line = iF.readline()
+			inputs["atom2"] = str(line.split(':')[1])
+			os.environ['ATOM2'] = inputs["atom2"]
 		line = iF.readline()
 	iF.close()
 	#coords = getCoords(inputs,xyz_file)
@@ -498,7 +508,7 @@ def outputFunc(f_name):
 
 #moves the .log files that were sucessfull from the gaussianTS folder to the completed folder
 def moveLogFiles():
-	os.chdir("../")
+	#os.chdir("../")
 	source_path = "gaussianTS/"
 	target_path = "completed/"
 	for filename in os.listdir("gaussianTS"):
@@ -507,21 +517,36 @@ def moveLogFiles():
         
 #Creates the completed output file
 def finalOutput():
-	os.chdir("../completed")
+	if os.path.isdir("../completed"):
+		os.chdir("../completed")
+	elif os.path.isdir("./completed"):
+		os.chdir("./completed")
+	elif os.path.isdir("completed/"):
+		os.chdir("completed/")
 	divider = "-" * 50 + '\n'
 	results = []
+	conformers_found = 0
 	oF = open("autots.out", 'w')
 	oF.write("\nAuto TS Output File\n")
 	if "yes" in os.getenv("RUN_CREST"):
-		oF.write("crest was used\n")
+		oF.write("Crest was used\n")
 	else:
-		oF.write("crest was not used")
+		oF.write("Crest was not used\n")
 	time = os.getenv("TIME")
-	oF.write("Trying to write time to final output file\n")
+	# oF.write("Trying to write time to final output file\n")
 	oF.write("Time taken: " + time + "\n")
-	oF.write("After trying to write time to final output file\n")
+	if "True" not in os.getenv("NO_ERRORS"):
+		oF.write("No transition states found because: " + os.getenv("NO_ERRORS"))
+		oF.write("\n")
+		oF.close()
+		return
+	# oF.write("After trying to write time to final output file\n")
 	for file in os.listdir("."):
 		results.append(outputFunc(file))
+		if file.split(".")[1] == "log":
+			conformers_found += 1
+	oF.write("Conformers requested: " + os.getenv("NUM_CONFS_REQUESTED"))
+	oF.write("Conformers found: " + str(conformers_found) + "\n")
 	for result in results:
 		oF.write(divider)
 		oF.write(result)
@@ -622,3 +647,151 @@ def runCrest(xyz_file, leniency, inputs):
 		line = origFile.readline()
 	tempFile.close()
 	origFile.close()
+
+#############vibrational frequency and helper functions #############
+def reasonsForFailedLogs(modredFail):
+    workDir = "completed/"
+    modredFail_linear = []
+    modredFail_opt = []
+    modredFail_scf = []
+    modredFail_constraint = []
+    for file in modredFail:
+        iF = open(workDir + file, 'r')
+        lines = iF.readlines()
+        if "FormBX" in (lines[-5]):
+            #FormBX had a problem.
+            modredFail_linear.append(file)
+        elif "Linear" in (lines[-5]):
+            #Linear angle in Tors.
+            modredFail_linear.append(file)
+        elif "internal" in (lines[-5]):
+            #Error in internal coordinate system.
+            modredFail_linear.append(file)
+        elif "9999" in (lines[-5]):
+            #Error termination request processed by link 9999.
+            modredFail_opt.append(file)
+        elif "Convergence" in (lines[-5]):
+            #Convergence failure -- run terminated.
+            modredFail_scf.append(file)
+        elif "constraints" in (lines[-5]):
+            #Error imposing constraints.
+            modredFail_constraint.append(file)
+        iF.close()
+
+#divide modredDone into goodVib and badVib
+def divideFinishedLogs(modredDone, atom1Num, atom2Num):
+    workDir = "completed/"
+    modredMode = {}
+    # modredVib = {}
+    goodVib = []
+    badVib = []
+    for file in modredDone:
+        iF = open(workDir + file, 'r')
+        line = iF.readline()
+        while line:
+            if "Normal termination" in line:
+                break
+            line = iF.readline()
+        line = iF.readline()
+        while line:
+            if "Standard orientation" in line:
+                break
+            line = iF.readline()
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        for i in range(0, atom1Num-1): #get atom 1 who's position vector is to be projected onto atom 2
+            line = iF.readline()
+        print("getting atom 1's first set:" + line + "\n")
+        #line = iF.readline()
+        # print(line)
+        if len(line) == 0:
+            continue
+        coord1 = line.split()[3:6]
+        gapBetweenAtoms = atom2Num - atom1Num
+        count = 0
+        while count != gapBetweenAtoms: #get atom 2 coordinates
+            line = iF.readline()
+            count += 1
+        print("getting atom 2's first set:" + line + "\n")
+        #line = iF.readline()
+        # print(line)
+        coord2 = line.split()[3:6]
+        coord = [float(i) - float(j) for i, j in zip(coord1, coord2)]
+        coordNorm = (coord[0] ** 2 + coord[1] ** 2 + coord[2] ** 2) ** 0.5
+        coord = [i / coordNorm for i in coord]
+        while line:
+            if "normal coordinates" in line:
+                break
+            line = iF.readline()
+        iF.readline()
+        iF.readline()
+        line = iF.readline()
+        if len(line) == 0:
+            continue
+        freq = float(line.split()[2])
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        iF.readline()
+        for i in range(0, atom1Num-1): #get the normal coordinates for atom 1 which will be projected onto atom 2
+            line = iF.readline()
+        print("getting atom 1's second set:" + line + "\n")
+        if len(line) == 0:
+            continue
+        coord1 = line.split()[2:5]
+        count = 0
+        while count != gapBetweenAtoms:  # get atom 2 normal coordinates
+            line = iF.readline()
+            count += 1
+        print("getting atom 2's second set:" + line + "\n")
+        #line = iF.readline()
+        if len(line) == 0:
+            continue
+        coord2 = line.split()[2:5]
+        vector = [float(i) - float(j) for i, j in zip(coord1, coord2)]
+        # coord1 = line.split()[2:5]
+        # # print(line)
+        # vector = [float(i) for i in coord1]
+        vectorCross = ((vector[0] * coord[0] + vector[1] * coord[1] + vector[2] * coord[2]) ** 2) ** 0.5
+        vectorNorm = (vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2) ** 0.5
+        if vectorCross == 0:
+            modredMode[file] = 5000
+        else:
+            modredMode[file] = vectorNorm/vectorCross
+        if modredMode[file] < 2 and freq < .5:
+            goodVib.append(file)
+        else:
+            badVib.append(file)
+        iF.close()
+    removeBadVibFilesFromCompleted(badVib)
+
+#add files in goodVib to a completed TS folder
+def removeBadVibFilesFromCompleted(badVib):
+    #os.mkdir("completedTS")
+    for file in badVib:
+		os.remove("completed/" + file)
+        #shutil.copy(file, "completed/")
+
+def vibrationFrequencyMainFunc(atom1, atom2):
+    modredDone = []
+    modredFail = []
+    workDir = "completed/"
+    files = [file for file in os.listdir(workDir) if ".log" in file]
+    for file in files:
+        iF = open(workDir + file, 'r')
+        line = iF.readline()
+        while line:
+            if "termination" in line:
+                break
+            line = iF.readline()
+        if "Normal" in line:
+            modredDone.append(file)
+        if "Error" in line:
+            modredFail.append(file)
+        iF.close()
+    reasonsForFailedLogs(modredFail)
+    divideFinishedLogs(modredDone, atom1, atom2)
